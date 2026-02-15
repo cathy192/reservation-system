@@ -9,12 +9,13 @@ import com.learning.shared.kernel.domain.AggregateRoot;
 import java.time.LocalDateTime;
 
 public class Reservation extends AggregateRoot<ReservationId> {
+    
 
     private final ReservationId id;
     private final MemberId memberId;
     private final ResourceId resourceId;
     private final TimeSlot timeSlot;
-    private ReservationStatus status;
+    private ReservationStatus status; //예약 상태 (PENDING, CONFIRMED, CANCELLED) 변경 가능하도록 final 제거
 
     private Reservation(ReservationId id, MemberId memberId, ResourceId resourceId, TimeSlot timeSlot) {
         this.id = id;
@@ -28,11 +29,12 @@ public class Reservation extends AggregateRoot<ReservationId> {
     public static Reservation create(MemberId memberId, ResourceId resourceId, TimeSlot timeSlot) {
         ReservationId id = ReservationId.generate();
         Reservation reservation = new Reservation(id, memberId, resourceId, timeSlot);
+        //예약이 생성될 때 도메인 이벤트 등록
         reservation.registerEvent(new ReservationCreated(id, memberId, resourceId, timeSlot));
         return reservation;
     }
 
-    /** 영속성 복원용 팩토리 (이벤트 발행 없음) */
+    /** 영속성 복원용 팩토리 (이벤트 발행 없음).db에서 읽을때 사용되는걸로, 이벤트 아님 */
     public static Reservation reconstitute(
             ReservationId id, MemberId memberId, ResourceId resourceId,
             TimeSlot timeSlot, ReservationStatus status) {
@@ -45,15 +47,15 @@ public class Reservation extends AggregateRoot<ReservationId> {
         this.status = ReservationStatus.CONFIRMED;
     }
 
-    public void cancel(LocalDateTime now) {
+    public void cancel(LocalDateTime now) {//비지니스 로직 존재
         if (this.status == ReservationStatus.CANCELLED) {
-            throw new AlreadyCancelledException();
+            throw new AlreadyCancelledException();//이미 취소된 예약을 다시 취소하려는 경우 예외 발생
         }
         if (now.plusHours(1).isAfter(timeSlot.startTime())) {
-            throw new CancellationNotAllowedException();
+            throw new CancellationNotAllowedException();//예약 시작 1시간 전부터는 취소가 불가능하도록 하는 비지니스 규칙을 적용하여, 예외 발생
         }
         this.status = ReservationStatus.CANCELLED;
-        registerEvent(new ReservationCancelled(this.id));
+        registerEvent(new ReservationCancelled(this.id));//예약이 취소될 때 도메인 이벤트 등록
     }
 
     @Override

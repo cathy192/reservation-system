@@ -15,14 +15,17 @@ public abstract class AggregateRoot<ID> {
     public abstract ID getId();
 
     protected void registerEvent(DomainEvent event) {
+        //자식 클래스(Reservation)만 도메인 이벤트를 등록할 수 있도록 protected로 설정
         domainEvents.add(event);
     }
 
     public List<DomainEvent> getDomainEvents() {
+        //도메인 이벤트 리스트를 외부에서 수정할 수 없도록 unmodifiableList로 반환
         return Collections.unmodifiableList(domainEvents);
     }
 
     public void clearDomainEvents() {
+        //도메인 이벤트 리스트를 초기화하여, 인프라 계층에서 발행 후 이벤트가 중복되지 않도록 함
         domainEvents.clear();
     }
 }
