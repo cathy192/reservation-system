@@ -62,4 +62,13 @@ public class ReservationJpaEntity {
     public UUID getId() {
         return id;
     }
+
+    // Update existing JPA entity fields from domain object
+    public void updateFromDomain(Reservation reservation) {
+        this.memberId = reservation.getMemberId().value();
+        this.resourceId = reservation.getResourceId().value();
+        this.startTime = reservation.getTimeSlot().startTime();
+        this.endTime = reservation.getTimeSlot().endTime();
+        this.status = reservation.getStatus();
+    }
 }
