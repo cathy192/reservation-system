@@ -68,6 +68,26 @@ domain (순수 Java) ← application (UseCase) ← adapter (Spring/JPA) ← boot
   │   └── reservation-bootstrap/                # Spring Boot 진입점, 설정
   └── infrastructure/docker/docker-compose.yml  # PostgreSQL + Redis
 
+### 상세 설명
+- Shared-Kernel (모듈 공유 공통 코드 )
+    - DomainEvent: 시스템에서 무슨일이 일어났다라고 표현하는 인터페이스
+        - eventId(): 이벤트 중복 처리 방지
+        - occuredAt(): 이벤트 순서를 보장하기위한 필드
+        - 인터페이스인 이유: 각 도메인 이벤트(ReservationCancelled, ReservationCreated)에서 공통적으로 사용해야하기 때문
+- AggregateRoot(함께 변경되어야 하는 객체들의 묶음)
+    - Reservation이 바뀔 때 Timeslot도 바뀌어야함
+    - Root? 외부에서 이 묶음에 접근하기 위한 유일한 진입점. TimeSlot을 직접 수정하지 않고 반드시 Reservation을 통해 접근해야함
+
+- application vs Domain
+    - domain은 무엇이 가능한가 (비지니스 규칙)
+         - db, 외부 시스템도 모르고 불변의 비지니스 규칙만 존재
+    - Application UseCase는 어떤 시나리오를 수행하는가
+        -  외부 요청 → [DTO 변환] → [이중예약 검증(DB 조회)] → [도메인 호출] → [저장] → [응답 반환]
+        - 인터페이스는 입력 포트에 있고 구현체는 서비스.
+    -  한 줄 요약: 도메인은 "규칙"을 알고, UseCase(Service)는 "절차"를 안다.
+    - ex: Reservation.cancel()은 "취소해도 되는지"를 판단하고, CancelReservationService는 "DB에서 꺼내서 → cancel 호출 → 다시 저장"이라는 절차 
+
+## 환경
 - Java 21, Spring Boot 4.0.2, Gradle 8.14
 - PostgreSQL (운영) / H2 (테스트)
 - Flyway (DB 마이그레이션)
